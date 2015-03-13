@@ -340,6 +340,46 @@ describe InfluxDB::Client do
       @influxdb.write_point("seriez", data).should be_a(Net::HTTPOK)
     end
 
+  
+    it "should POST to add points and tags for a 0.9 instance" do
+      body = [{
+        "database" => "metrics",
+        "retentionPolicy" => "test",
+        "points" => [
+          {
+            "name" => "cpu",
+            "tags" => {
+              "host" => "serverA",
+              "region" => "uswest"
+            },
+            "fields" => {
+              "value" => 23.2
+            }
+          },
+          {
+            "name" => "cpu",
+            "tags" => {
+              "host" => "serverB",
+              "region" => "uswest"
+            },
+            "fields" => {
+              "value" => 25.1
+            }
+          }
+        ]
+      }]
+
+      stub_request(:post, "http://influxdb.test:9999/write").with(
+        :query => {:u => "username", :p => "password", :db => "database"},
+        :body => body
+      )
+
+      # data = {:name => "juan", :age => 87}
+
+
+      @influxdb.write_point9(body).should be_a(Net::HTTPOK)
+    end
+
     describe "retrying requests" do
       let(:body) do
         [{
@@ -604,6 +644,25 @@ describe InfluxDB::Client do
       )
 
       @influxdb.query('select * from orders').should == {'orders' => [{'id' => 1, 'line_items' => line_items}]}
+    end
+  end
+
+  describe "#query9" do
+
+    it 'should load JSON point value as an array of hashes' do
+      # line_items = [{'id' => 1, 'product_id' => 2, 'quantity' => 1, 'price' => "100.00"}]
+
+      # data = [{ :name => "orders", :columns => ["id", "line_items"], :points => [[1, line_items.to_json]]}]
+
+      data = {"results"=>[{"series"=>[{"name"=>"cpu", "columns"=>["time", "value"], "values"=>[["2015-03-11T14:16:24.596436212Z", 23.2]]}]}]}
+      
+      stub_request(:get, "http://influxdb.test:9999/query").with(
+        :query => { :q => "select value from cpu where region='uswest' and host='serverA'", :u => "username", :p => "password", :db => "database"}
+      ).to_return(
+        :body => JSON.generate(data)
+      )
+
+      @influxdb.query9("select value from cpu where region='uswest' and host='serverA'").should == data
     end
   end
 

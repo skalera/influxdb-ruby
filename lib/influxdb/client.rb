@@ -149,6 +149,12 @@ module InfluxDB
       delete full_url("/cluster/shards/#{shard_id}"), data
     end
 
+    def write_point9(data)
+      #data[0].inject({}){ |h, (n,v)| h[n.to_sym] = v; h }
+      # db = data[0]["database"]
+      _write9(data)
+    end
+
     def write_point(name, data, async=@async, time_precision=@time_precision)
       data = data.is_a?(Array) ? data : [data]
       columns = data.reduce(:merge).keys.sort {|a,b| a.to_s <=> b.to_s}
@@ -173,6 +179,17 @@ module InfluxDB
       url = full_url("/db/#{@database}/series", :time_precision => time_precision)
       data = JSON.generate(payload)
       post(url, data)
+    end
+
+    def _write9(payload)
+      url = full_url("/write", :db => @database)
+      data = JSON.generate(payload)
+      post(url,data)
+    end
+
+    def query9(query)
+      url = full_url("/query", :q => query, :db => @database)
+      get(url)
     end
 
     def query(query, time_precision=@time_precision)
