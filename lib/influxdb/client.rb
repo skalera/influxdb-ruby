@@ -150,8 +150,6 @@ module InfluxDB
     end
 
     def write_point9(data)
-      #data[0].inject({}){ |h, (n,v)| h[n.to_sym] = v; h }
-      # db = data[0]["database"]
       _write9(data)
     end
 
